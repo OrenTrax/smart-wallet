@@ -49,7 +49,8 @@
   .card .ill{height:62px;display:grid;place-items:center}
   .card .ill svg{height:62px;width:auto}
   .card .ttl{font-size:19px;font-weight:800;margin-top:6px}
-  .card .sub{font-size:13px;opacity:.95;direction:ltr;text-align:right;font-weight:700}
+  .card .sub{font-size:26px;opacity:1;direction:ltr;text-align:right;font-weight:900;
+    background:rgba(255,255,255,.22);border-radius:12px;padding:2px 8px;display:inline-block;margin-top:4px}
   .c-saving{background:linear-gradient(150deg,var(--saving),var(--saving-d))}
   .c-invest{background:linear-gradient(150deg,var(--invest),var(--invest-d))}
   .c-treat{background:linear-gradient(150deg,var(--treat),var(--treat-d))}
@@ -67,7 +68,7 @@
   .scr-head h2{font-size:22px;font-weight:800}
   .scr-body{padding:18px 16px}
 
-  .bigamt{font-size:34px;font-weight:800;text-align:center;direction:ltr;margin:6px 0 2px}
+  .bigamt{font-size:52px;font-weight:900;text-align:center;direction:ltr;margin:8px 0 2px;line-height:1.05}
   .miniLbl{text-align:center;color:#777;font-size:14px;font-weight:700}
 
   .panel{background:#fff;border-radius:22px;padding:16px;box-shadow:var(--shadow);margin-top:16px;border:1px solid #f0ecfa}
@@ -221,6 +222,8 @@
     <div class="goal-name" id="goalName">לא הוגדרה מטרה עדיין</div>
     <img class="goalimg" id="goalImg">
     <div class="well-wrap" id="wellWrap"></div>
+    <div class="miniLbl">💰 יש לך בחיסכון</div>
+    <div class="bigamt" id="savingTotal" style="color:#16a34a">₪0</div>
     <div class="progress-txt" id="progTxt"></div>
 
     <div class="panel">
@@ -566,7 +569,7 @@ function heartSVG(amt){
 /* ============ רינדור ============ */
 function render(){
   const g=S.saving;
-  const total=g.bal+S.invest.kid*2+S.treat.bal+S.donate.bal;
+  const total=g.bal+S.invest.kid*2+S.treat.bal; // תרומה לא נכללת - זה כסף שיוצא לעזור לאחרים
   document.getElementById('totalAmt').textContent=ils(total);
   document.getElementById('savingSub').textContent=ils(g.bal);
   document.getElementById('investSub').textContent=ils(S.invest.kid*2);
@@ -582,6 +585,7 @@ function render(){
   const reached=g.goalTarget>0&&g.bal>=g.goalTarget;
   const prize=g.goalImg?'🎁':(g.goalArt==='lego'?'LEGO':(ART[g.goalArt]||'🎯'));
   document.getElementById('wellWrap').innerHTML=wellSVG(pct,prize,reached);
+  document.getElementById('savingTotal').textContent=ils(g.bal);
   if(g.goalTarget>0){
     if(reached){
       document.getElementById('progTxt').innerHTML='🏆 כל הכבוד! הגעת למטרה! 🏆';
