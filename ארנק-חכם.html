@@ -430,7 +430,7 @@ function buildArt(){
   const box=document.getElementById('artPick');box.innerHTML='';
   for(const[k,e]of Object.entries(ART)){
     const b=document.createElement('button');
-    b.innerHTML=e+'<span>'+ARTNAME[k]+'</span>';
+    b.innerHTML=(k==='lego'?legoFaceSVG():e)+'<span>'+ARTNAME[k]+'</span>';
     if(S.saving.goalArt===k&&!S.saving.goalImg)b.classList.add('sel');
     b.onclick=()=>{S.saving.goalArt=k;S.saving.goalImg='';save();render();};
     box.appendChild(b);
@@ -475,6 +475,23 @@ function donateGive(){
   toast('💝','כל הכבוד שעזרת!','תרמת '+ils(v)+' • בסך הכל תרמת '+ils(S.donate.given));
 }
 
+/* ============ פרצוף איש לגו ============ */
+function legoFaceMarkup(cx,cy,s){
+  return `<g transform="translate(${cx},${cy}) scale(${s})">
+    <rect x="-9" y="-35" width="18" height="12" rx="4" fill="#facc15"/>
+    <ellipse cx="0" cy="-34" rx="9" ry="3.5" fill="#fde047"/>
+    <rect x="-20" y="-24" width="40" height="47" rx="14" fill="#fcd34d" stroke="#eab308" stroke-width="2.5"/>
+    <circle cx="-8" cy="-5" r="3.4" fill="#1f2937"/>
+    <circle cx="8" cy="-5" r="3.4" fill="#1f2937"/>
+    <circle cx="-6.7" cy="-6.2" r="1" fill="#fff"/>
+    <circle cx="9.3" cy="-6.2" r="1" fill="#fff"/>
+    <path d="M-10 7 Q0 18 10 7" stroke="#1f2937" stroke-width="3" fill="none" stroke-linecap="round"/>
+  </g>`;
+}
+function legoFaceSVG(){
+  return `<svg width="30" height="40" viewBox="-26 -40 52 70">${legoFaceMarkup(0,0,1)}</svg>`;
+}
+
 /* ============ ציור מד-החיסכון (מתמלא) ============ */
 function wellSVG(pct, prize, reached){
   pct=Math.max(0,Math.min(1,pct));
@@ -494,7 +511,7 @@ function wellSVG(pct, prize, reached){
     </defs>
     <!-- הפרס בראש (היעד) -->
     <circle cx="120" cy="36" r="32" fill="${reached?'#fde047':'#f3eefe'}" stroke="${reached?'#f59e0b':'#ddd6fe'}" stroke-width="5"/>
-    <text x="120" y="49" font-size="36" text-anchor="middle">${prize||'🎯'}</text>
+    ${prize==='LEGO'?legoFaceMarkup(120,40,0.82):`<text x="120" y="49" font-size="36" text-anchor="middle">${prize||'🎯'}</text>`}
     ${reached?'<text x="156" y="22" font-size="22" text-anchor="middle">🎉</text><text x="86" y="22" font-size="22" text-anchor="middle">🎉</text>':''}
     <!-- צינור המדידה -->
     <rect x="72" y="${top}" width="96" height="${h}" rx="20" fill="#f8fafc" stroke="#cbd5e1" stroke-width="5"/>
@@ -563,7 +580,7 @@ function render(){
   document.getElementById('removeImgBtn').style.display=g.goalImg?'block':'none';
   const pct=g.goalTarget>0?g.bal/g.goalTarget:0;
   const reached=g.goalTarget>0&&g.bal>=g.goalTarget;
-  const prize=g.goalImg?'🎁':(ART[g.goalArt]||'🎯');
+  const prize=g.goalImg?'🎁':(g.goalArt==='lego'?'LEGO':(ART[g.goalArt]||'🎯'));
   document.getElementById('wellWrap').innerHTML=wellSVG(pct,prize,reached);
   if(g.goalTarget>0){
     if(reached){
