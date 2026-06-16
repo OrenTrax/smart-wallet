@@ -40,6 +40,12 @@
   .total-card .amt{font-size:40px;font-weight:800;margin-top:2px;direction:ltr;text-align:right}
   .total-card .coin{position:absolute;left:-10px;bottom:-18px;font-size:90px;opacity:.18;transform:rotate(-15deg)}
 
+  .syncbar{margin-top:12px;background:#fff;border:2px solid #e9e3fa;border-radius:16px;padding:11px 14px;
+    display:flex;align-items:center;justify-content:center;gap:8px;font-weight:800;cursor:pointer;
+    color:#6d28d9;box-shadow:var(--shadow);font-size:15px}
+  .syncbar:active{transform:scale(.98)}
+  .syncbar.on{border-color:#bbf7d0;background:#f0fdf4;color:#16a34a}
+
   /* ===== כרטיסי הבית ===== */
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
   .card{border-radius:24px;padding:16px 14px 14px;color:#fff;box-shadow:var(--shadow);
@@ -155,6 +161,8 @@
     <div class="amt" id="totalAmt">₪0</div>
     <div class="coin">🪙</div>
   </div>
+
+  <div class="syncbar" id="syncBar" onclick="syncPrompt()">🔗 חברו סנכרון בין הפלאפונים</div>
 
   <div class="grid">
     <div class="card c-saving" onclick="openScreen('saving')">
@@ -361,6 +369,7 @@
 <div id="toast"><div class="emo">🎉</div><div class="msg"></div></div>
 <canvas id="confetti"></canvas>
 
+<script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
 <script>
 /* ============ נתונים ============ */
 const KEY='smartwallet_ron_v1';
@@ -378,7 +387,7 @@ function load(){
     donate:{bal:0,given:0,hist:[]}
   };
 }
-function save(){localStorage.setItem(KEY,JSON.stringify(S));}
+function save(){S._ts=Date.now();localStorage.setItem(KEY,JSON.stringify(S));broadcast();}
 const ils=n=>'₪'+Math.round(n).toLocaleString('en-US');
 const now=()=>{const d=new Date();return d.toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})+' '+d.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});};
 
@@ -673,7 +682,65 @@ function loop(){
   if(parts.length){raf=requestAnimationFrame(loop);}else{raf=null;cx.clearRect(0,0,cv.width,cv.height);}
 }
 
+/* ============ סנכרון בין פלאפונים (GUN) ============ */
+const RELAYS=['https://relay.peer.ooo/gun','https://gun-manhattan.herokuapp.com/gun','https://peer.wallie.io/gun'];
+let gun=null, walletNode=null, applyingRemote=false;
+function familyCode(){return (localStorage.getItem('sw_family')||'').trim();}
+function suggestCode(){return 'RON-'+Math.floor(1000+Math.random()*9000);}
+function broadcast(){
+  if(!walletNode||applyingRemote)return;
+  try{walletNode.put({json:JSON.stringify(S),ts:S._ts||Date.now()});}catch(e){}
+}
+function updateSyncBadge(){
+  const el=document.getElementById('syncBar');if(!el)return;
+  const c=familyCode();
+  if(c){el.classList.add('on');el.textContent='🟢 מסונכרן • קוד: '+c;}
+  else{el.classList.remove('on');el.textContent='🔗 חברו סנכרון בין הפלאפונים';}
+}
+function flashSync(){toast('🔄','עודכן מהפלאפון השני!','');}
+function setFamily(code){
+  code=(code||'').trim().toUpperCase();
+  if(code)localStorage.setItem('sw_family',code);else localStorage.removeItem('sw_family');
+  location.reload();
+}
+function syncPrompt(){
+  const cur=familyCode();
+  if(typeof Gun==='undefined'){alert('אין כרגע חיבור לאינטרנט לסנכרון. נסו שוב כשיש רשת.');return;}
+  let msg;
+  if(cur){msg='קוד המשפחה שלכם הוא:\n\n   '+cur+'\n\nהזינו את אותו קוד בדיוק בפלאפון של אמא, ושניכם תראו את אותו ארנק.\n\nלשינוי קוד — כתבו אותו כאן. לניתוק — מחקו והשאירו ריק:';}
+  else{msg='בחרו קוד משפחה משותף (למשל RON-1234).\nהזינו אותו גם בפלאפון של אמא — וזהו, מסונכרנים!\n\nהקוד שלכם:';}
+  const v=prompt(msg,cur||suggestCode());
+  if(v===null)return;
+  setFamily(v);
+}
+function initSync(){
+  updateSyncBadge();
+  const c=familyCode();
+  if(!c||typeof Gun==='undefined')return;
+  try{
+    gun=Gun({peers:RELAYS});
+    walletNode=gun.get('smartwallet-fam-'+c.toUpperCase()).get('state');
+    walletNode.on(d=>{
+      if(!d||!d.json)return;
+      try{
+        const remote=JSON.parse(d.json);
+        if((d.ts||0)>(S._ts||0)){
+          applyingRemote=true;
+          S=remote; if(S.donate.given===undefined)S.donate.given=0;
+          localStorage.setItem(KEY,JSON.stringify(S));
+          render();updateSyncBadge();
+          applyingRemote=false;
+          flashSync();
+        }
+      }catch(e){}
+    });
+    // שליחה ראשונית של המצב הנוכחי לענן
+    setTimeout(broadcast,2000);
+  }catch(e){}
+}
+
 render();
+initSync();
 </script>
 </body>
 </html>
