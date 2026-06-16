@@ -111,9 +111,10 @@
 
   /* תמונת מטרה */
   .goalimg{width:100%;height:150px;border-radius:18px;object-fit:cover;margin-top:6px;display:none}
-  .pickart{display:flex;gap:8px;overflow-x:auto;padding:6px 2px;margin-top:8px}
-  .pickart button{flex:none;width:64px;height:64px;border-radius:16px;border:3px solid transparent;
-    background:#f3eefe;cursor:pointer;display:grid;place-items:center;font-size:32px}
+  .pickart{display:flex;flex-wrap:wrap;gap:8px;padding:6px 2px;margin-top:8px;justify-content:center}
+  .pickart button{flex:none;width:60px;height:70px;border-radius:16px;border:3px solid transparent;
+    background:#f3eefe;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:30px}
+  .pickart button span{font-size:11px;font-weight:800;color:#6d28d9}
   .pickart button.sel{border-color:#7c3aed}
 
   /* השקעה ויזואלי */
@@ -246,6 +247,7 @@
       <div class="pickart" id="artPick"></div>
       <button class="btn ghost sm" style="margin-top:8px" onclick="document.getElementById('goalFile').click()">📷 או העלה תמונה משלך</button>
       <input type="file" id="goalFile" accept="image/*" style="display:none">
+      <button class="btn ghost sm" id="removeImgBtn" style="margin-top:8px;display:none;color:#dc2626;border-color:#fecaca" onclick="removeGoalImg()">🗑️ הסרת התמונה</button>
       <button class="btn green" style="margin-top:12px" onclick="saveGoal()">✅ שמירת המטרה</button>
     </div>
 
@@ -330,21 +332,20 @@
   </div>
   <div class="scr-body">
     <div class="well-wrap" id="donateHeart"></div>
-    <div class="miniLbl">צברת לתרומה</div>
+    <div class="miniLbl">בקופת התרומה, מוכן לתת 💗</div>
     <div class="bigamt" id="donateTotal" style="color:#db2777">₪0</div>
+    <div class="progress-txt" id="donateGivenTxt" style="color:#db2777"></div>
 
     <div class="panel">
-      <div class="field"><label>הכנסה / תרומה (₪)</label>
-        <input type="number" id="donateIn" inputmode="numeric" placeholder="כמה?"></div>
+      <div class="field"><label>כמה לתרום עכשיו? (₪)</label>
+        <input type="number" id="donateIn" inputmode="numeric" placeholder="כמה נותנים למי שצריך?"></div>
       <div class="chips">
         <button class="chip" onclick="quick('donateIn',5)">₪5</button>
         <button class="chip" onclick="quick('donateIn',10)">₪10</button>
         <button class="chip" onclick="quick('donateIn',20)">₪20</button>
       </div>
-      <div class="row">
-        <button class="btn pink" onclick="deposit('donate')">➕ מכניס</button>
-        <button class="btn ghost" onclick="withdraw('donate')">💝 תורם</button>
-      </div>
+      <button class="btn pink" style="margin-top:12px" onclick="donateGive()">💝 תורמים! הכסף יוצא לעזור</button>
+      <button class="btn ghost sm" style="margin-top:10px" onclick="deposit('donate')">➕ הוספה לקופת התרומה</button>
     </div>
     <div class="panel"><b style="color:#db2777">📜 היסטוריה</b><div class="hist" id="donateHist"></div></div>
   </div>
@@ -357,7 +358,9 @@
 /* ============ נתונים ============ */
 const KEY='smartwallet_ron_v1';
 const ART={bike:'🚲',game:'🎮',ball:'⚽',book:'📚',lego:'🧱',phone:'📱',scooter:'🛴',dog:'🐶',rocket:'🚀',star:'⭐'};
+const ARTNAME={bike:'אופניים',game:'משחק',ball:'כדור',book:'ספר',lego:'לגו',phone:'טלפון',scooter:'קורקינט',dog:'כלב',rocket:'חללית',star:'כוכב'};
 let S=load();
+if(S.donate.given===undefined)S.donate.given=0;
 
 function load(){
   try{const d=JSON.parse(localStorage.getItem(KEY));if(d)return d;}catch(e){}
@@ -365,7 +368,7 @@ function load(){
     saving:{bal:0,hist:[],goalName:'',goalTarget:0,goalArt:'bike',goalImg:''},
     invest:{kid:0,hist:[]},
     treat:{bal:0,hist:[]},
-    donate:{bal:0,hist:[]}
+    donate:{bal:0,given:0,hist:[]}
   };
 }
 function save(){localStorage.setItem(KEY,JSON.stringify(S));}
@@ -426,17 +429,24 @@ function withdraw(k){
 function buildArt(){
   const box=document.getElementById('artPick');box.innerHTML='';
   for(const[k,e]of Object.entries(ART)){
-    const b=document.createElement('button');b.textContent=e;
+    const b=document.createElement('button');
+    b.innerHTML=e+'<span>'+ARTNAME[k]+'</span>';
     if(S.saving.goalArt===k&&!S.saving.goalImg)b.classList.add('sel');
-    b.onclick=()=>{S.saving.goalArt=k;S.saving.goalImg='';buildArt();};
+    b.onclick=()=>{S.saving.goalArt=k;S.saving.goalImg='';save();render();};
     box.appendChild(b);
   }
 }
 document.getElementById('goalFile').addEventListener('change',e=>{
   const f=e.target.files[0];if(!f)return;
-  const r=new FileReader();r.onload=ev=>{S.saving.goalImg=ev.target.result;buildArt();};
+  const r=new FileReader();r.onload=ev=>{S.saving.goalImg=ev.target.result;save();render();toast('🖼️','התמונה נוספה!','עכשיו לחץ "שמירת המטרה"');};
   r.readAsDataURL(f);
 });
+function removeGoalImg(){
+  S.saving.goalImg='';
+  document.getElementById('goalFile').value='';
+  save();render();
+  toast('🗑️','התמונה הוסרה','אפשר לבחור ציור או להעלות תמונה אחרת');
+}
 function saveGoal(){
   const n=document.getElementById('goalNameIn').value.trim();
   const t=Math.round(parseFloat(document.getElementById('goalTargetIn').value)||0);
@@ -452,44 +462,59 @@ function checkGoal(){
   }
 }
 
-/* ============ ציור הבאר (מתמלא) ============ */
-function wellSVG(pct){
+/* ============ תרומה (עובדת הפוך - כסף יוצא) ============ */
+function donateGive(){
+  const el=document.getElementById('donateIn');
+  const v=Math.round(parseFloat(el.value)||0);
+  if(v<=0){shake(el);return;}
+  if(v>S.donate.bal){toast('🙂','אין מספיק בקופה','יש בקופת התרומה '+ils(S.donate.bal));return;}
+  S.donate.bal-=v;
+  S.donate.given+=v;
+  S.donate.hist.unshift({a:-v,give:true,t:now()});
+  el.value='';save();render();celebrate();
+  toast('💝','כל הכבוד שעזרת!','תרמת '+ils(v)+' • בסך הכל תרמת '+ils(S.donate.given));
+}
+
+/* ============ ציור מד-החיסכון (מתמלא) ============ */
+function wellSVG(pct, prize, reached){
   pct=Math.max(0,Math.min(1,pct));
-  const top=150, bottom=250, h=bottom-top;
+  const top=78, bottom=300, h=bottom-top;
   const waterY=bottom-h*pct;
-  const fill=h*pct;
-  return `<svg viewBox="0 0 240 290" width="230" height="278">
+  const pctTxt=Math.round(pct*100);
+  // קווי מדידה ברורים 25/50/75
+  let ticks='';
+  [0.25,0.5,0.75].forEach(p=>{const y=bottom-h*p;
+    ticks+=`<line x1="64" y1="${y}" x2="80" y2="${y}" stroke="#cbd5e1" stroke-width="3"/>
+            <line x1="160" y1="${y}" x2="176" y2="${y}" stroke="#cbd5e1" stroke-width="3"/>`;});
+  return `<svg viewBox="0 0 240 350" width="220" height="320">
     <defs>
-      <clipPath id="wc"><rect x="62" y="${top}" width="116" height="${h}" rx="6"/></clipPath>
+      <clipPath id="wc"><rect x="72" y="${top}" width="96" height="${h}" rx="20"/></clipPath>
       <linearGradient id="wg" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#4ade80"/><stop offset="1" stop-color="#16a34a"/></linearGradient>
+        <stop offset="0" stop-color="#86efac"/><stop offset="1" stop-color="#16a34a"/></linearGradient>
     </defs>
-    <!-- גג -->
-    <path d="M40 120 L120 60 L200 120 Z" fill="#b45309"/>
-    <path d="M40 120 L120 60 L200 120 Z" fill="none" stroke="#92400e" stroke-width="4"/>
-    <rect x="112" y="48" width="16" height="20" rx="3" fill="#92400e"/>
-    <!-- עמודים -->
-    <rect x="58" y="120" width="10" height="135" fill="#a16207"/>
-    <rect x="172" y="120" width="10" height="135" fill="#a16207"/>
-    <!-- גוף הבאר -->
-    <rect x="58" y="${top}" width="124" height="${h}" rx="10" fill="#e7d3b3"/>
+    <!-- הפרס בראש (היעד) -->
+    <circle cx="120" cy="36" r="32" fill="${reached?'#fde047':'#f3eefe'}" stroke="${reached?'#f59e0b':'#ddd6fe'}" stroke-width="5"/>
+    <text x="120" y="49" font-size="36" text-anchor="middle">${prize||'🎯'}</text>
+    ${reached?'<text x="156" y="22" font-size="22" text-anchor="middle">🎉</text><text x="86" y="22" font-size="22" text-anchor="middle">🎉</text>':''}
+    <!-- צינור המדידה -->
+    <rect x="72" y="${top}" width="96" height="${h}" rx="20" fill="#f8fafc" stroke="#cbd5e1" stroke-width="5"/>
+    ${ticks}
     <!-- מים מתמלאים -->
     <g clip-path="url(#wc)">
-      <rect x="62" y="${waterY}" width="116" height="${fill+8}" fill="url(#wg)"/>
-      <path d="M62 ${waterY} q14 -10 29 0 t29 0 t29 0 t29 0 v40 h-116 z" fill="#86efac" opacity=".7">
-        <animate attributeName="d" dur="2.4s" repeatCount="indefinite"
-          values="M62 ${waterY} q14 -10 29 0 t29 0 t29 0 t29 0 v40 h-116 z;
-                  M62 ${waterY} q14 10 29 0 t29 0 t29 0 t29 0 v40 h-116 z;
-                  M62 ${waterY} q14 -10 29 0 t29 0 t29 0 t29 0 v40 h-116 z"/>
+      <rect x="72" y="${waterY}" width="96" height="${h}" fill="url(#wg)"/>
+      <path d="M72 ${waterY} q12 -9 24 0 t24 0 t24 0 t24 0 v60 h-120 z" fill="#bbf7d0" opacity=".6">
+        <animate attributeName="d" dur="2.6s" repeatCount="indefinite"
+          values="M72 ${waterY} q12 -9 24 0 t24 0 t24 0 t24 0 v60 h-120 z;
+                  M72 ${waterY} q12 9 24 0 t24 0 t24 0 t24 0 v60 h-120 z;
+                  M72 ${waterY} q12 -9 24 0 t24 0 t24 0 t24 0 v60 h-120 z"/>
       </path>
-      ${pct>0.05?'<circle cx="95" cy="'+(waterY+25)+'" r="5" fill="#fff" opacity=".5"/><circle cx="140" cy="'+(waterY+40)+'" r="4" fill="#fff" opacity=".4"/>':''}
+      ${pct>0.08?'<text x="120" y="'+(waterY+34)+'" font-size="26" text-anchor="middle">🪙</text>':''}
     </g>
-    <!-- מסגרת -->
-    <rect x="58" y="${top}" width="124" height="${h}" rx="10" fill="none" stroke="#a16207" stroke-width="5"/>
-    <rect x="52" y="${top-8}" width="136" height="14" rx="7" fill="#a16207"/>
-    <!-- דלי -->
-    <line x1="120" y1="68" x2="120" y2="110" stroke="#6b4423" stroke-width="3"/>
-    <path d="M108 110 h24 l-3 16 h-18 z" fill="#cbd5e1" stroke="#64748b" stroke-width="2"/>
+    <!-- מסגרת קדמית -->
+    <rect x="72" y="${top}" width="96" height="${h}" rx="20" fill="none" stroke="#94a3b8" stroke-width="5"/>
+    <!-- תווית אחוז גדולה וקריאה תמיד -->
+    <rect x="78" y="178" width="84" height="44" rx="22" fill="#fff" stroke="#16a34a" stroke-width="3"/>
+    <text x="120" y="210" font-size="30" font-weight="800" text-anchor="middle" fill="#16a34a">${pctTxt}%</text>
   </svg>`;
 }
 function jarSVG(pct,color1,color2,emoji){
@@ -535,13 +560,21 @@ function render(){
   document.getElementById('goalName').textContent=g.goalName?('🎯 '+g.goalName):'הגדר מטרה לחיסכון למטה ⬇️';
   const gi=document.getElementById('goalImg');
   if(g.goalImg){gi.src=g.goalImg;gi.style.display='block';}else{gi.style.display='none';}
+  document.getElementById('removeImgBtn').style.display=g.goalImg?'block':'none';
   const pct=g.goalTarget>0?g.bal/g.goalTarget:0;
-  document.getElementById('wellWrap').innerHTML=wellSVG(pct);
+  const reached=g.goalTarget>0&&g.bal>=g.goalTarget;
+  const prize=g.goalImg?'🎁':(ART[g.goalArt]||'🎯');
+  document.getElementById('wellWrap').innerHTML=wellSVG(pct,prize,reached);
   if(g.goalTarget>0){
-    document.getElementById('progTxt').innerHTML=ils(g.bal)+' מתוך '+ils(g.goalTarget)+
-      ' • '+Math.min(100,Math.round(pct*100))+'%'+(g.bal>=g.goalTarget?' 🏆 הגעת!':'');
+    if(reached){
+      document.getElementById('progTxt').innerHTML='🏆 כל הכבוד! הגעת למטרה! 🏆';
+    }else{
+      const left=g.goalTarget-g.bal;
+      document.getElementById('progTxt').innerHTML='עוד <b style="font-size:22px">'+ils(left)+'</b> ומגיעים ל'+g.goalName+'! 🎯'+
+        '<br><small style="color:#888;font-weight:700">יש כבר '+ils(g.bal)+' מתוך '+ils(g.goalTarget)+'</small>';
+    }
   }else{
-    document.getElementById('progTxt').textContent='יש לך '+ils(g.bal)+' בחיסכון';
+    document.getElementById('progTxt').innerHTML='יש לך <b style="font-size:22px">'+ils(g.bal)+'</b> בחיסכון 🐷';
   }
   document.getElementById('goalNameIn').value=g.goalName||'';
   document.getElementById('goalTargetIn').value=g.goalTarget||'';
@@ -562,6 +595,9 @@ function render(){
   // תרומה
   document.getElementById('donateHeart').innerHTML=heartSVG(S.donate.bal);
   document.getElementById('donateTotal').textContent=ils(S.donate.bal);
+  document.getElementById('donateGivenTxt').innerHTML = S.donate.given>0
+    ? '💝 כבר תרמת בסך הכל <b style="font-size:22px">'+ils(S.donate.given)+'</b>!'
+    : 'הוסיפו לקופה, ואז תורמים למי שצריך 💗';
   histList('donateHist',S.donate.hist);
 }
 function histList(id,arr,inv){
@@ -569,9 +605,10 @@ function histList(id,arr,inv){
   if(!arr.length){box.innerHTML='<div class="empty">עוד לא נכנס כסף 🙂</div>';return;}
   box.innerHTML=arr.slice(0,30).map(h=>{
     const neg=h.a<0;
-    let label=neg?'יצא':'נכנס';
+    let label=h.give?'תרמת':(neg?'יצא':'נכנס');
+    let icon=h.give?'💝':(neg?'➖':'➕');
     let sub=inv&&!neg?(' (כולל הכפלה: '+ils(h.match*2)+')'):'';
-    return `<div class="item"><span>${neg?'➖':'➕'} ${label}<div class="t">${h.t}</div></span>
+    return `<div class="item"><span>${icon} ${label}<div class="t">${h.t}</div></span>
       <span class="a ${neg?'neg':''}">${neg?'-':'+'}${ils(Math.abs(h.a))}${sub}</span></div>`;
   }).join('');
 }
