@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#7c3aed">
+<title>הארנק החכם שלי</title>
+<style>
+  :root{
+    --saving:#22c55e; --saving-d:#16a34a;
+    --invest:#3b82f6; --invest-d:#2563eb;
+    --treat:#f59e0b; --treat-d:#d97706;
+    --donate:#ec4899; --donate-d:#db2777;
+    --ink:#1e1b3a; --paper:#fdfcff;
+    --shadow:0 10px 30px rgba(60,40,120,.18);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:"Segoe UI","Heebo",system-ui,Arial,sans-serif;
+    background:linear-gradient(160deg,#ede9fe 0%,#fce7f3 45%,#e0f2fe 100%);
+    background-attachment:fixed;
+    color:var(--ink); overflow-x:hidden;
+    -webkit-user-select:none; user-select:none;
+  }
+  .app{max-width:520px;margin:0 auto;min-height:100%;padding:0 16px 110px;position:relative}
+
+  /* ===== כותרת עליונה ===== */
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 4px 8px}
+  .hello{font-size:15px;color:#6d28d9;font-weight:700}
+  .hello b{display:block;font-size:22px;color:var(--ink)}
+  .avatar{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#f0abfc);
+    display:grid;place-items:center;box-shadow:var(--shadow);font-size:30px}
+
+  .total-card{background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border-radius:26px;
+    padding:20px 22px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .total-card .lbl{font-size:14px;opacity:.9}
+  .total-card .amt{font-size:40px;font-weight:800;margin-top:2px;direction:ltr;text-align:right}
+  .total-card .coin{position:absolute;left:-10px;bottom:-18px;font-size:90px;opacity:.18;transform:rotate(-15deg)}
+
+  /* ===== כרטיסי הבית ===== */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+  .card{border-radius:24px;padding:16px 14px 14px;color:#fff;box-shadow:var(--shadow);
+    cursor:pointer;position:relative;overflow:hidden;transition:transform .12s ease;min-height:148px;
+    display:flex;flex-direction:column;justify-content:space-between}
+  .card:active{transform:scale(.96)}
+  .card .ill{height:62px;display:grid;place-items:center}
+  .card .ill svg{height:62px;width:auto}
+  .card .ttl{font-size:19px;font-weight:800;margin-top:6px}
+  .card .sub{font-size:13px;opacity:.95;direction:ltr;text-align:right;font-weight:700}
+  .c-saving{background:linear-gradient(150deg,var(--saving),var(--saving-d))}
+  .c-invest{background:linear-gradient(150deg,var(--invest),var(--invest-d))}
+  .c-treat{background:linear-gradient(150deg,var(--treat),var(--treat-d))}
+  .c-donate{background:linear-gradient(150deg,var(--donate),var(--donate-d))}
+
+  /* ===== מסך פנימי ===== */
+  .screen{position:fixed;inset:0;background:var(--paper);z-index:40;overflow-y:auto;
+    transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);
+    max-width:520px;margin:0 auto;padding-bottom:40px}
+  .screen.open{transform:translateX(0)}
+  .scr-head{padding:16px;display:flex;align-items:center;gap:12px;color:#fff;
+    border-radius:0 0 28px 28px;box-shadow:var(--shadow)}
+  .scr-head .back{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.25);
+    border:none;color:#fff;font-size:24px;cursor:pointer;display:grid;place-items:center;flex:none}
+  .scr-head h2{font-size:22px;font-weight:800}
+  .scr-body{padding:18px 16px}
+
+  .bigamt{font-size:34px;font-weight:800;text-align:center;direction:ltr;margin:6px 0 2px}
+  .miniLbl{text-align:center;color:#777;font-size:14px;font-weight:700}
+
+  .panel{background:#fff;border-radius:22px;padding:16px;box-shadow:var(--shadow);margin-top:16px;border:1px solid #f0ecfa}
+
+  .field{margin-top:12px}
+  .field label{display:block;font-size:13px;font-weight:800;color:#6d28d9;margin-bottom:6px}
+  .field input{width:100%;border:2px solid #e9e3fa;border-radius:14px;padding:13px 14px;
+    font-size:17px;font-family:inherit;background:#faf8ff;color:var(--ink);outline:none}
+  .field input:focus{border-color:#a78bfa}
+
+  .btn{border:none;border-radius:16px;padding:15px;font-size:17px;font-weight:800;color:#fff;
+    width:100%;cursor:pointer;font-family:inherit;box-shadow:var(--shadow);transition:transform .1s}
+  .btn:active{transform:scale(.97)}
+  .btn.green{background:linear-gradient(135deg,var(--saving),var(--saving-d))}
+  .btn.blue{background:linear-gradient(135deg,var(--invest),var(--invest-d))}
+  .btn.orange{background:linear-gradient(135deg,var(--treat),var(--treat-d))}
+  .btn.pink{background:linear-gradient(135deg,var(--donate),var(--donate-d))}
+  .btn.ghost{background:#fff;color:#6d28d9;border:2px solid #e9e3fa;box-shadow:none}
+  .btn.sm{padding:11px;font-size:15px}
+  .row{display:flex;gap:10px;margin-top:12px}
+  .row>*{flex:1}
+
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .chip{background:#f3eefe;border:none;border-radius:999px;padding:9px 16px;font-size:15px;
+    font-weight:800;color:#6d28d9;cursor:pointer;font-family:inherit}
+  .chip:active{background:#e3d9fb}
+
+  /* ===== הבאר ===== */
+  .well-wrap{display:grid;place-items:center;margin:10px 0}
+  .goal-name{text-align:center;font-size:20px;font-weight:800;margin-top:4px}
+  .progress-txt{text-align:center;font-weight:800;color:#16a34a;margin-top:8px;font-size:16px}
+
+  /* היסטוריה */
+  .hist{margin-top:8px}
+  .hist .item{display:flex;justify-content:space-between;align-items:center;padding:11px 4px;
+    border-bottom:1px solid #f1edf9;font-weight:700}
+  .hist .item .a{color:#16a34a;direction:ltr}
+  .hist .item .a.neg{color:#dc2626}
+  .hist .item .t{color:#999;font-size:12px}
+  .empty{text-align:center;color:#aaa;padding:24px 0;font-weight:700}
+
+  /* תמונת מטרה */
+  .goalimg{width:100%;height:150px;border-radius:18px;object-fit:cover;margin-top:6px;display:none}
+  .pickart{display:flex;gap:8px;overflow-x:auto;padding:6px 2px;margin-top:8px}
+  .pickart button{flex:none;width:64px;height:64px;border-radius:16px;border:3px solid transparent;
+    background:#f3eefe;cursor:pointer;display:grid;place-items:center;font-size:32px}
+  .pickart button.sel{border-color:#7c3aed}
+
+  /* השקעה ויזואלי */
+  .match{display:flex;align-items:stretch;gap:10px;margin-top:6px}
+  .match .col{flex:1;background:#f8fbff;border:2px solid #e3eefe;border-radius:18px;padding:12px;text-align:center}
+  .match .col .who{font-size:13px;font-weight:800;color:#2563eb}
+  .match .col .v{font-size:24px;font-weight:800;direction:ltr;margin-top:4px}
+  .match .plus{display:grid;place-items:center;font-size:28px;color:#2563eb;font-weight:800}
+
+  /* ===== טוסט חיווי ===== */
+  #toast{position:fixed;left:50%;top:24px;transform:translateX(-50%) translateY(-120px);
+    background:#fff;border-radius:18px;padding:14px 20px;box-shadow:var(--shadow);z-index:90;
+    display:flex;align-items:center;gap:12px;font-weight:800;transition:transform .35s cubic-bezier(.2,1.4,.4,1);
+    max-width:90%;border:2px solid #d8f5e0}
+  #toast.show{transform:translateX(-50%) translateY(0)}
+  #toast .emo{font-size:30px}
+  #toast .msg{font-size:15px}
+  #toast .msg small{display:block;color:#16a34a;font-size:14px;direction:ltr}
+
+  /* קונפטי */
+  #confetti{position:fixed;inset:0;pointer-events:none;z-index:80}
+
+  /* פוטר */
+  .madeby{text-align:center;color:#b9b0d6;font-size:12px;margin-top:26px;font-weight:700}
+</style>
+</head>
+<body>
+
+<div class="app" id="home">
+  <div class="topbar">
+    <div class="hello">שלום 👋<b id="kidName">רון</b></div>
+    <div class="avatar">🦊</div>
+  </div>
+
+  <div class="total-card">
+    <div class="lbl">סך הכל בארנק שלי</div>
+    <div class="amt" id="totalAmt">₪0</div>
+    <div class="coin">🪙</div>
+  </div>
+
+  <div class="grid">
+    <div class="card c-saving" onclick="openScreen('saving')">
+      <div class="ill">
+        <svg viewBox="0 0 100 80"><g>
+          <ellipse cx="50" cy="70" rx="34" ry="8" fill="rgba(0,0,0,.15)"/>
+          <path d="M22 38a28 22 0 1 1 56 0v6a28 18 0 0 1-56 0z" fill="#fff"/>
+          <circle cx="68" cy="34" r="6" fill="#16a34a"/>
+          <rect x="46" y="14" width="8" height="14" rx="3" fill="#fde68a"/>
+          <rect x="42" y="26" width="16" height="5" rx="2" fill="#1e1b3a"/>
+          <ellipse cx="38" cy="40" rx="3" ry="4" fill="#16a34a"/>
+          <path d="M16 44q-6 2-4 8" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round"/>
+        </g></svg>
+      </div>
+      <div><div class="ttl">חיסכון</div><div class="sub" id="savingSub">₪0</div></div>
+    </div>
+
+    <div class="card c-invest" onclick="openScreen('invest')">
+      <div class="ill">
+        <svg viewBox="0 0 100 80"><g>
+          <rect x="20" y="50" width="14" height="24" rx="3" fill="#fff"/>
+          <rect x="43" y="38" width="14" height="36" rx="3" fill="#fff"/>
+          <rect x="66" y="24" width="14" height="50" rx="3" fill="#fff"/>
+          <path d="M22 44 L48 30 L72 18" stroke="#fde68a" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="72" cy="18" r="6" fill="#fde68a"/><text x="72" y="22" font-size="8" text-anchor="middle" fill="#2563eb" font-weight="bold">×2</text>
+        </g></svg>
+      </div>
+      <div><div class="ttl">השקעה</div><div class="sub" id="investSub">₪0</div></div>
+    </div>
+
+    <div class="card c-treat" onclick="openScreen('treat')">
+      <div class="ill">
+        <svg viewBox="0 0 100 80"><g>
+          <path d="M30 40h40l-4 30H34z" fill="#fff"/>
+          <ellipse cx="50" cy="40" rx="20" ry="7" fill="#fde68a"/>
+          <circle cx="50" cy="24" r="9" fill="#fff"/><circle cx="40" cy="30" r="7" fill="#fff"/><circle cx="60" cy="30" r="7" fill="#fff"/>
+          <circle cx="44" cy="50" r="2.5" fill="#ec4899"/><circle cx="55" cy="58" r="2.5" fill="#3b82f6"/><circle cx="50" cy="46" r="2.5" fill="#22c55e"/>
+          <rect x="48" y="10" width="4" height="10" fill="#fff"/><circle cx="50" cy="9" r="3" fill="#ec4899"/>
+        </g></svg>
+      </div>
+      <div><div class="ttl">פינוקים</div><div class="sub" id="treatSub">₪0</div></div>
+    </div>
+
+    <div class="card c-donate" onclick="openScreen('donate')">
+      <div class="ill">
+        <svg viewBox="0 0 100 80"><g>
+          <path d="M50 66C30 52 22 42 22 32a14 14 0 0 1 28-4 14 14 0 0 1 28 4c0 10-8 20-28 34z" fill="#fff"/>
+          <path d="M50 40v14M43 47h14" stroke="#ec4899" stroke-width="4" stroke-linecap="round"/>
+        </g></svg>
+      </div>
+      <div><div class="ttl">תרומה</div><div class="sub" id="donateSub">₪0</div></div>
+    </div>
+  </div>
+
+  <div class="madeby">נבנה באהבה ❤️ ארנק חכם</div>
+</div>
+
+<!-- ===== מסך חיסכון ===== -->
+<div class="screen" id="scr-saving">
+  <div class="scr-head c-saving">
+    <button class="back" onclick="closeScreen('saving')">→</button>
+    <h2>🐷 חיסכון</h2>
+  </div>
+  <div class="scr-body">
+    <div class="goal-name" id="goalName">לא הוגדרה מטרה עדיין</div>
+    <img class="goalimg" id="goalImg">
+    <div class="well-wrap" id="wellWrap"></div>
+    <div class="progress-txt" id="progTxt"></div>
+
+    <div class="panel">
+      <div class="field"><label>הכנסת כסף לחיסכון (₪)</label>
+        <input type="number" id="savingIn" inputmode="numeric" placeholder="כמה שמים?"></div>
+      <div class="chips">
+        <button class="chip" onclick="quick('savingIn',5)">₪5</button>
+        <button class="chip" onclick="quick('savingIn',10)">₪10</button>
+        <button class="chip" onclick="quick('savingIn',20)">₪20</button>
+        <button class="chip" onclick="quick('savingIn',50)">₪50</button>
+      </div>
+      <div class="row">
+        <button class="btn green" onclick="deposit('saving')">➕ מכניס</button>
+        <button class="btn ghost" onclick="withdraw('saving')">➖ מוציא</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="field"><label>🎯 שם המטרה לחיסכון</label>
+        <input type="text" id="goalNameIn" placeholder="למשל: אופניים חדשים"></div>
+      <div class="field"><label>💰 כמה זה עולה? (₪)</label>
+        <input type="number" id="goalTargetIn" inputmode="numeric" placeholder="מחיר היעד"></div>
+      <label style="display:block;font-size:13px;font-weight:800;color:#6d28d9;margin:12px 0 0">🖼️ בחר ציור למטרה</label>
+      <div class="pickart" id="artPick"></div>
+      <button class="btn ghost sm" style="margin-top:8px" onclick="document.getElementById('goalFile').click()">📷 או העלה תמונה משלך</button>
+      <input type="file" id="goalFile" accept="image/*" style="display:none">
+      <button class="btn green" style="margin-top:12px" onclick="saveGoal()">✅ שמירת המטרה</button>
+    </div>
+
+    <div class="panel">
+      <b style="color:#6d28d9">📜 כל הכספים שנכנסו</b>
+      <div class="hist" id="savingHist"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== מסך השקעה ===== -->
+<div class="screen" id="scr-invest">
+  <div class="scr-head c-invest">
+    <button class="back" onclick="closeScreen('invest')">→</button>
+    <h2>📈 השקעה</h2>
+  </div>
+  <div class="scr-body">
+    <div class="miniLbl">סך ההשקעה (הכסף שלך + שלי)</div>
+    <div class="bigamt" id="investTotal" style="color:#2563eb">₪0</div>
+
+    <div class="panel">
+      <b style="color:#2563eb">על כל שקל שאתה שם — אני מכפיל! ✨</b>
+      <div class="match">
+        <div class="col"><div class="who">🧒 הכסף שלך</div><div class="v" id="investKid">₪0</div></div>
+        <div class="plus">＋</div>
+        <div class="col"><div class="who">👨 ההכפלה שלי</div><div class="v" id="investParent">₪0</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="field"><label>כמה אתה משקיע? (₪)</label>
+        <input type="number" id="investIn" inputmode="numeric" placeholder="כל שקל מוכפל"></div>
+      <div class="chips">
+        <button class="chip" onclick="quick('investIn',5)">₪5</button>
+        <button class="chip" onclick="quick('investIn',10)">₪10</button>
+        <button class="chip" onclick="quick('investIn',20)">₪20</button>
+      </div>
+      <button class="btn blue" style="margin-top:12px" onclick="deposit('invest')">📈 משקיע (ומכפיל!)</button>
+      <button class="btn ghost sm" style="margin-top:10px" onclick="withdraw('invest')">➖ משיכה מההשקעה</button>
+    </div>
+
+    <div class="panel">
+      <b style="color:#2563eb">📜 היסטוריית השקעות</b>
+      <div class="hist" id="investHist"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== מסך פינוקים ===== -->
+<div class="screen" id="scr-treat">
+  <div class="scr-head c-treat">
+    <button class="back" onclick="closeScreen('treat')">→</button>
+    <h2>🍦 פינוקים</h2>
+  </div>
+  <div class="scr-body">
+    <div class="well-wrap" id="treatJar"></div>
+    <div class="miniLbl">יש לך לפינוקים</div>
+    <div class="bigamt" id="treatTotal" style="color:#d97706">₪0</div>
+
+    <div class="panel">
+      <div class="field"><label>הכנסה / הוצאה (₪)</label>
+        <input type="number" id="treatIn" inputmode="numeric" placeholder="כמה?"></div>
+      <div class="chips">
+        <button class="chip" onclick="quick('treatIn',5)">₪5</button>
+        <button class="chip" onclick="quick('treatIn',10)">₪10</button>
+        <button class="chip" onclick="quick('treatIn',20)">₪20</button>
+      </div>
+      <div class="row">
+        <button class="btn orange" onclick="deposit('treat')">➕ מכניס</button>
+        <button class="btn ghost" onclick="withdraw('treat')">🍭 מפנק</button>
+      </div>
+    </div>
+    <div class="panel"><b style="color:#d97706">📜 היסטוריה</b><div class="hist" id="treatHist"></div></div>
+  </div>
+</div>
+
+<!-- ===== מסך תרומה ===== -->
+<div class="screen" id="scr-donate">
+  <div class="scr-head c-donate">
+    <button class="back" onclick="closeScreen('donate')">→</button>
+    <h2>💝 תרומה</h2>
+  </div>
+  <div class="scr-body">
+    <div class="well-wrap" id="donateHeart"></div>
+    <div class="miniLbl">צברת לתרומה</div>
+    <div class="bigamt" id="donateTotal" style="color:#db2777">₪0</div>
+
+    <div class="panel">
+      <div class="field"><label>הכנסה / תרומה (₪)</label>
+        <input type="number" id="donateIn" inputmode="numeric" placeholder="כמה?"></div>
+      <div class="chips">
+        <button class="chip" onclick="quick('donateIn',5)">₪5</button>
+        <button class="chip" onclick="quick('donateIn',10)">₪10</button>
+        <button class="chip" onclick="quick('donateIn',20)">₪20</button>
+      </div>
+      <div class="row">
+        <button class="btn pink" onclick="deposit('donate')">➕ מכניס</button>
+        <button class="btn ghost" onclick="withdraw('donate')">💝 תורם</button>
+      </div>
+    </div>
+    <div class="panel"><b style="color:#db2777">📜 היסטוריה</b><div class="hist" id="donateHist"></div></div>
+  </div>
+</div>
+
+<div id="toast"><div class="emo">🎉</div><div class="msg"></div></div>
+<canvas id="confetti"></canvas>
+
+<script>
+/* ============ נתונים ============ */
+const KEY='smartwallet_ron_v1';
+const ART={bike:'🚲',game:'🎮',ball:'⚽',book:'📚',lego:'🧱',phone:'📱',scooter:'🛴',dog:'🐶',rocket:'🚀',star:'⭐'};
+let S=load();
+
+function load(){
+  try{const d=JSON.parse(localStorage.getItem(KEY));if(d)return d;}catch(e){}
+  return {
+    saving:{bal:0,hist:[],goalName:'',goalTarget:0,goalArt:'bike',goalImg:''},
+    invest:{kid:0,hist:[]},
+    treat:{bal:0,hist:[]},
+    donate:{bal:0,hist:[]}
+  };
+}
+function save(){localStorage.setItem(KEY,JSON.stringify(S));}
+const ils=n=>'₪'+Math.round(n).toLocaleString('en-US');
+const now=()=>{const d=new Date();return d.toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})+' '+d.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});};
+
+/* ============ ניווט ============ */
+function openScreen(k){document.getElementById('scr-'+k).classList.add('open');render();}
+function closeScreen(k){document.getElementById('scr-'+k).classList.remove('open');}
+function quick(id,v){const el=document.getElementById(id);el.value=(parseFloat(el.value)||0)+v;}
+
+/* ============ פעולות כסף ============ */
+function deposit(k){
+  const map={saving:'savingIn',invest:'investIn',treat:'treatIn',donate:'donateIn'};
+  const el=document.getElementById(map[k]);
+  const v=Math.round(parseFloat(el.value)||0);
+  if(v<=0){shake(el);return;}
+  el.value='';
+  if(k==='invest'){
+    S.invest.kid+=v;
+    S.invest.hist.unshift({a:v,match:v,t:now()});
+    save();render();celebrate();
+    toast('🚀','השקעת '+ils(v)+'!','ואני הוספתי עוד '+ils(v)+' = '+ils(v*2));
+    return;
+  }
+  S[k].bal+=v;
+  S[k].hist.unshift({a:v,t:now()});
+  save();render();celebrate();
+  const msgs={
+    saving:['💰','כל הכבוד! נכנסו '+ils(v),'אתה מתקרב למטרה שלך!'],
+    treat:['🍦','יש! נכנסו '+ils(v),'לפינוקים שלך'],
+    donate:['💝','איזה לב טוב! נכנסו '+ils(v),'בשביל לעזור לאחרים']
+  };
+  toast(...msgs[k]);
+  if(k==='saving') checkGoal();
+}
+function withdraw(k){
+  const map={saving:'savingIn',invest:'investIn',treat:'treatIn',donate:'donateIn'};
+  const el=document.getElementById(map[k]);
+  const v=Math.round(parseFloat(el.value)||0);
+  if(v<=0){shake(el);return;}
+  if(k==='invest'){
+    const tot=S.invest.kid*2;
+    if(v>tot){toast('😅','אין מספיק','יש בהשקעה '+ils(tot));return;}
+    // מושכים יחסית: חצי מהכסף שלו
+    S.invest.kid=Math.max(0,S.invest.kid-Math.ceil(v/2));
+    S.invest.hist.unshift({a:-v,t:now()});
+  }else{
+    if(v>S[k].bal){toast('😅','אין מספיק כסף','יש לך '+ils(S[k].bal));return;}
+    S[k].bal-=v;
+    S[k].hist.unshift({a:-v,t:now()});
+  }
+  el.value='';save();render();
+  toast('👋','הוצאת '+ils(v),'');
+}
+
+/* ============ מטרת חיסכון ============ */
+function buildArt(){
+  const box=document.getElementById('artPick');box.innerHTML='';
+  for(const[k,e]of Object.entries(ART)){
+    const b=document.createElement('button');b.textContent=e;
+    if(S.saving.goalArt===k&&!S.saving.goalImg)b.classList.add('sel');
+    b.onclick=()=>{S.saving.goalArt=k;S.saving.goalImg='';buildArt();};
+    box.appendChild(b);
+  }
+}
+document.getElementById('goalFile').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();r.onload=ev=>{S.saving.goalImg=ev.target.result;buildArt();};
+  r.readAsDataURL(f);
+});
+function saveGoal(){
+  const n=document.getElementById('goalNameIn').value.trim();
+  const t=Math.round(parseFloat(document.getElementById('goalTargetIn').value)||0);
+  if(!n||t<=0){toast('🙂','מלא שם ומחיר','כדי לשמור מטרה');return;}
+  S.saving.goalName=n;S.saving.goalTarget=t;
+  save();render();
+  toast('🎯','המטרה נשמרה!',n+' • '+ils(t));
+}
+function checkGoal(){
+  const g=S.saving;
+  if(g.goalTarget>0&&g.bal>=g.goalTarget){
+    setTimeout(()=>{bigConfetti();toast('🏆','הגעת למטרה!!!','השגת את: '+g.goalName);},600);
+  }
+}
+
+/* ============ ציור הבאר (מתמלא) ============ */
+function wellSVG(pct){
+  pct=Math.max(0,Math.min(1,pct));
+  const top=150, bottom=250, h=bottom-top;
+  const waterY=bottom-h*pct;
+  const fill=h*pct;
+  return `<svg viewBox="0 0 240 290" width="230" height="278">
+    <defs>
+      <clipPath id="wc"><rect x="62" y="${top}" width="116" height="${h}" rx="6"/></clipPath>
+      <linearGradient id="wg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#4ade80"/><stop offset="1" stop-color="#16a34a"/></linearGradient>
+    </defs>
+    <!-- גג -->
+    <path d="M40 120 L120 60 L200 120 Z" fill="#b45309"/>
+    <path d="M40 120 L120 60 L200 120 Z" fill="none" stroke="#92400e" stroke-width="4"/>
+    <rect x="112" y="48" width="16" height="20" rx="3" fill="#92400e"/>
+    <!-- עמודים -->
+    <rect x="58" y="120" width="10" height="135" fill="#a16207"/>
+    <rect x="172" y="120" width="10" height="135" fill="#a16207"/>
+    <!-- גוף הבאר -->
+    <rect x="58" y="${top}" width="124" height="${h}" rx="10" fill="#e7d3b3"/>
+    <!-- מים מתמלאים -->
+    <g clip-path="url(#wc)">
+      <rect x="62" y="${waterY}" width="116" height="${fill+8}" fill="url(#wg)"/>
+      <path d="M62 ${waterY} q14 -10 29 0 t29 0 t29 0 t29 0 v40 h-116 z" fill="#86efac" opacity=".7">
+        <animate attributeName="d" dur="2.4s" repeatCount="indefinite"
+          values="M62 ${waterY} q14 -10 29 0 t29 0 t29 0 t29 0 v40 h-116 z;
+                  M62 ${waterY} q14 10 29 0 t29 0 t29 0 t29 0 v40 h-116 z;
+                  M62 ${waterY} q14 -10 29 0 t29 0 t29 0 t29 0 v40 h-116 z"/>
+      </path>
+      ${pct>0.05?'<circle cx="95" cy="'+(waterY+25)+'" r="5" fill="#fff" opacity=".5"/><circle cx="140" cy="'+(waterY+40)+'" r="4" fill="#fff" opacity=".4"/>':''}
+    </g>
+    <!-- מסגרת -->
+    <rect x="58" y="${top}" width="124" height="${h}" rx="10" fill="none" stroke="#a16207" stroke-width="5"/>
+    <rect x="52" y="${top-8}" width="136" height="14" rx="7" fill="#a16207"/>
+    <!-- דלי -->
+    <line x1="120" y1="68" x2="120" y2="110" stroke="#6b4423" stroke-width="3"/>
+    <path d="M108 110 h24 l-3 16 h-18 z" fill="#cbd5e1" stroke="#64748b" stroke-width="2"/>
+  </svg>`;
+}
+function jarSVG(pct,color1,color2,emoji){
+  pct=Math.max(0,Math.min(1,pct));
+  const top=90,bottom=210,h=bottom-top,wy=bottom-h*pct;
+  return `<svg viewBox="0 0 200 250" width="180" height="225">
+    <defs><clipPath id="jc"><path d="M55 ${top} h90 v110 a45 30 0 0 1 -90 0 z"/></clipPath>
+    <linearGradient id="jg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color1}"/><stop offset="1" stop-color="${color2}"/></linearGradient></defs>
+    <ellipse cx="100" cy="${bottom+8}" rx="48" ry="14" fill="rgba(0,0,0,.08)"/>
+    <path d="M55 ${top} h90 v110 a45 30 0 0 1 -90 0 z" fill="#f1f5f9"/>
+    <g clip-path="url(#jc)">
+      <rect x="50" y="${wy}" width="100" height="${h*pct+30}" fill="url(#jg)"/>
+      <ellipse cx="100" cy="${wy}" rx="46" ry="9" fill="#fff" opacity=".35"/>
+    </g>
+    <path d="M55 ${top} h90 v110 a45 30 0 0 1 -90 0 z" fill="none" stroke="#cbd5e1" stroke-width="4"/>
+    <rect x="48" y="${top-18}" width="104" height="22" rx="8" fill="${color2}"/>
+    <text x="100" y="${top+70}" font-size="40" text-anchor="middle">${pct>0?emoji:''}</text>
+  </svg>`;
+}
+function heartSVG(amt){
+  const big=Math.min(1,amt/200);const s=0.6+big*0.5;
+  return `<svg viewBox="0 0 200 200" width="170" height="170">
+    <g transform="translate(100,105) scale(${s}) translate(-100,-105)">
+    <path d="M100 165C55 130 35 105 35 78a30 30 0 0 1 65-8 30 30 0 0 1 65 8c0 27-20 52-65 87z" fill="#ec4899"/>
+    <path d="M100 165C55 130 35 105 35 78a30 30 0 0 1 65-8 30 30 0 0 1 65 8c0 27-20 52-65 87z" fill="none" stroke="#db2777" stroke-width="4"/>
+    <circle cx="78" cy="78" r="7" fill="#fff" opacity=".6"/>
+    </g>
+    ${amt>0?'<text x="100" y="118" font-size="34" text-anchor="middle">💝</text>':''}
+  </svg>`;
+}
+
+/* ============ רינדור ============ */
+function render(){
+  const g=S.saving;
+  const total=g.bal+S.invest.kid*2+S.treat.bal+S.donate.bal;
+  document.getElementById('totalAmt').textContent=ils(total);
+  document.getElementById('savingSub').textContent=ils(g.bal);
+  document.getElementById('investSub').textContent=ils(S.invest.kid*2);
+  document.getElementById('treatSub').textContent=ils(S.treat.bal);
+  document.getElementById('donateSub').textContent=ils(S.donate.bal);
+
+  // חיסכון
+  document.getElementById('goalName').textContent=g.goalName?('🎯 '+g.goalName):'הגדר מטרה לחיסכון למטה ⬇️';
+  const gi=document.getElementById('goalImg');
+  if(g.goalImg){gi.src=g.goalImg;gi.style.display='block';}else{gi.style.display='none';}
+  const pct=g.goalTarget>0?g.bal/g.goalTarget:0;
+  document.getElementById('wellWrap').innerHTML=wellSVG(pct);
+  if(g.goalTarget>0){
+    document.getElementById('progTxt').innerHTML=ils(g.bal)+' מתוך '+ils(g.goalTarget)+
+      ' • '+Math.min(100,Math.round(pct*100))+'%'+(g.bal>=g.goalTarget?' 🏆 הגעת!':'');
+  }else{
+    document.getElementById('progTxt').textContent='יש לך '+ils(g.bal)+' בחיסכון';
+  }
+  document.getElementById('goalNameIn').value=g.goalName||'';
+  document.getElementById('goalTargetIn').value=g.goalTarget||'';
+  buildArt();
+  histList('savingHist',g.hist);
+
+  // השקעה
+  document.getElementById('investKid').textContent=ils(S.invest.kid);
+  document.getElementById('investParent').textContent=ils(S.invest.kid);
+  document.getElementById('investTotal').textContent=ils(S.invest.kid*2);
+  histList('investHist',S.invest.hist,true);
+
+  // פינוקים
+  document.getElementById('treatJar').innerHTML=jarSVG(Math.min(1,S.treat.bal/100),'#fcd34d','#d97706','🍬');
+  document.getElementById('treatTotal').textContent=ils(S.treat.bal);
+  histList('treatHist',S.treat.hist);
+
+  // תרומה
+  document.getElementById('donateHeart').innerHTML=heartSVG(S.donate.bal);
+  document.getElementById('donateTotal').textContent=ils(S.donate.bal);
+  histList('donateHist',S.donate.hist);
+}
+function histList(id,arr,inv){
+  const box=document.getElementById(id);
+  if(!arr.length){box.innerHTML='<div class="empty">עוד לא נכנס כסף 🙂</div>';return;}
+  box.innerHTML=arr.slice(0,30).map(h=>{
+    const neg=h.a<0;
+    let label=neg?'יצא':'נכנס';
+    let sub=inv&&!neg?(' (כולל הכפלה: '+ils(h.match*2)+')'):'';
+    return `<div class="item"><span>${neg?'➖':'➕'} ${label}<div class="t">${h.t}</div></span>
+      <span class="a ${neg?'neg':''}">${neg?'-':'+'}${ils(Math.abs(h.a))}${sub}</span></div>`;
+  }).join('');
+}
+
+/* ============ חיווי (טוסט) ============ */
+let tT;
+function toast(emo,msg,sub){
+  const t=document.getElementById('toast');
+  t.querySelector('.emo').textContent=emo;
+  t.querySelector('.msg').innerHTML=msg+(sub?'<small>'+sub+'</small>':'');
+  t.classList.add('show');
+  if(navigator.vibrate)navigator.vibrate(60);
+  clearTimeout(tT);tT=setTimeout(()=>t.classList.remove('show'),2800);
+}
+function shake(el){el.style.borderColor='#f87171';setTimeout(()=>el.style.borderColor='',600);}
+
+/* ============ קונפטי ============ */
+const cv=document.getElementById('confetti');const cx=cv.getContext('2d');
+let parts=[];
+function resize(){cv.width=innerWidth;cv.height=innerHeight;}resize();addEventListener('resize',resize);
+function celebrate(){spawn(40);}
+function bigConfetti(){spawn(160);}
+function spawn(n){
+  const cols=['#22c55e','#3b82f6','#f59e0b','#ec4899','#a855f7','#fde047'];
+  for(let i=0;i<n;i++)parts.push({x:Math.random()*cv.width,y:-20,
+    vx:(Math.random()-.5)*6,vy:Math.random()*4+2,
+    s:Math.random()*8+5,c:cols[i%cols.length],r:Math.random()*6,vr:(Math.random()-.5)*.4});
+  if(!raf)loop();
+}
+let raf;
+function loop(){
+  cx.clearRect(0,0,cv.width,cv.height);
+  parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.12;p.r+=p.vr;
+    cx.save();cx.translate(p.x,p.y);cx.rotate(p.r);cx.fillStyle=p.c;
+    cx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);cx.restore();});
+  parts=parts.filter(p=>p.y<cv.height+30);
+  if(parts.length){raf=requestAnimationFrame(loop);}else{raf=null;cx.clearRect(0,0,cv.width,cv.height);}
+}
+
+render();
+</script>
+</body>
+</html>
